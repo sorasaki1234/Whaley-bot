@@ -1,29 +1,31 @@
 import discord
 from discord.ext import commands
-import json
+import os
 import asyncio
-from database import init_db
 
-intents = discord.Intents.all()
+# ===== LẤY TOKEN TỪ RAILWAY ENV =====
+TOKEN = os.getenv("TOKEN")
 
-with open("config.json") as f:
-    config = json.load(f)
+if TOKEN is None:
+    raise ValueError("TOKEN not found in environment variables!")
 
-bot = commands.Bot(command_prefix=config["prefix"], intents=intents)
+# ===== INTENTS =====
+intents = discord.Intents.default()
+intents.message_content = True
+intents.members = True
 
+bot = commands.Bot(command_prefix="!", intents=intents)
+
+# ===== EVENT =====
 @bot.event
 async def on_ready():
-    print(f"Bot online: {bot.user}")
-    await init_db()
+    print(f"✅ Logged in as {bot.user}")
+    print("Bot is online and running on Railway 🚀")
 
-async def load_cogs():
-    await bot.load_extension("cogs.moderation")
-    await bot.load_extension("cogs.leveling")
-    await bot.load_extension("cogs.ai_chat")
+# ===== TEST COMMAND =====
+@bot.command()
+async def ping(ctx):
+    await ctx.send("Pong 🏓")
 
-async def main():
-    async with bot:
-        await load_cogs()
-        await bot.start(config["token"])
-
-asyncio.run(main())
+# ===== RUN BOT =====
+bot.run(TOKEN)
