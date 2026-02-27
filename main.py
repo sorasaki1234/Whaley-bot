@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 import asyncio
+import os
 
 intents = discord.Intents.all()
 
@@ -20,6 +21,12 @@ async def load_extensions():
 async def main():
     async with bot:
         await load_extensions()
-        await bot.start("YOUR_TOKEN_HERE")
+        token = os.getenv("TOKEN")
+        
+        if token is None:
+            print("❌ TOKEN chưa được set trong Railway Variables!")
+            return
+        
+        await bot.start(token)
 
 asyncio.run(main())
