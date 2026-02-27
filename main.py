@@ -141,7 +141,7 @@ async def on_member_join(member):
 
     embed = discord.Embed(
         title="🎉 THÀNH VIÊN MỚI ĐÃ ĐẾN!!!",
-        description=f"Chào mừng {member.mention} đến với **Học hành đàng hoàng!!** 👏👏👏",
+        description=f"Chào mừng {member.mention} gia nhập 👏👏👏",
         color=discord.Color.purple()
     )
 
@@ -175,3 +175,4 @@ async def on_member_remove(member):
 # ========================
 
 bot.run(TOKEN)
+
