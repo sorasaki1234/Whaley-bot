@@ -1,43 +1,49 @@
-import discord
 from discord.ext import commands
-import aiosqlite
-import random
-
+from database import load_data, save_data
 
 class Leveling(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-
-    async def add_exp(self, user_id, amount):
-        async with aiosqlite.connect("database.db") as db:
-            await db.execute("""
-            INSERT INTO users(user_id, exp)
-            VALUES(?, ?)
-            ON CONFLICT(user_id) DO UPDATE SET exp = exp + ?
-            """, (user_id, amount, amount))
-            await db.commit()
 
     @commands.Cog.listener()
     async def on_message(self, message):
         if message.author.bot:
             return
 
-        await self.add_exp(message.author.id, random.randint(5, 10))
+        data = load_data()
+        user = str(message.author.id)
+
+        if user not in data:
+            data[user] = {"xp": 0, "level": 1, "warn": 0}
+
+        data[user]["xp"] += 10
+
+        if data[user]["xp"] >= data[user]["level"] * 100:
+            data[user]["level"] += 1
+            data[user]["xp"] = 0
+            await message.channel.send(
+                f"🎉 {message.author.mention} đã lên level {data[user]['level']}!"
+            )
+
+        save_data(data)
 
     @commands.command()
-    async def rank(self, ctx):
-        async with aiosqlite.connect("database.db") as db:
-            async with db.execute("SELECT exp FROM users WHERE user_id = ?", (ctx.author.id,)) as cursor:
-                row = await cursor.fetchone()
+    async def lv(self, ctx):
+        data = load_data()
+        user = str(ctx.author.id)
 
-        if not row:
-            return await ctx.send("Bạn chưa có EXP!")
+        if user not in data:
+            await ctx.send("Bạn chưa có level 😅")
+            return
 
-        exp = row[0]
-        level = int((exp / 100) ** 0.5)
+        xp = data[user]["xp"]
+        level = data[user]["level"]
 
-        await ctx.send(f"📊 Level: {level} | EXP: {exp}")
-
+        await ctx.send(
+            f"📊 {ctx.author.mention}\n"
+            f"Level: {level}\n"
+            f"XP: {xp}/{level*100}"
+        )
 
 async def setup(bot):
     await bot.add_cog(Leveling(bot))
