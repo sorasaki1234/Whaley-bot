@@ -6,7 +6,15 @@ import unicodedata
 from collections import defaultdict
 import asyncio
 
+# ========================
+# TOKEN
+# ========================
+
 TOKEN = os.getenv("TOKEN")
+
+# ========================
+# INTENTS
+# ========================
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -18,6 +26,13 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # CẤU HÌNH
 # ========================
 
+WELCOME_CHANNEL = "chung"  # đổi nếu cần
+MUTE_DURATION = 60
+MAX_WARN = 3
+
+WELCOME_IMAGE = "https://media.giphy.com/media/OkJat1YNdoD3W/giphy.gif"
+GOODBYE_IMAGE = "https://media.giphy.com/media/3o6ZtaO9BZHcOjmErm/giphy.gif"
+
 toxic_words = ["ngu", "mkid", "oc cho", "do dien", "clan tao"]
 toxic_count = defaultdict(int)
 
@@ -28,35 +43,35 @@ responses = [
     "🧠 Bình tĩnh nào bro"
 ]
 
-MUTE_DURATION = 60  # giây
-MAX_WARN = 3
-
 # ========================
 # HÀM CHUẨN HOÁ TEXT
 # ========================
 
 def normalize_text(text):
-    # Chuyển regional indicator 🇦 🇧 🇨 -> abc
     new_text = ""
+
     for char in text:
         if 0x1F1E6 <= ord(char) <= 0x1F1FF:
             new_text += chr(ord(char) - 0x1F1E6 + ord('a'))
         else:
             new_text += char
 
-    # Bỏ dấu tiếng Việt
     new_text = unicodedata.normalize('NFD', new_text)
     new_text = ''.join(c for c in new_text if unicodedata.category(c) != 'Mn')
 
     return new_text.lower()
 
 # ========================
-# EVENT
+# EVENTS
 # ========================
 
 @bot.event
 async def on_ready():
     print(f"🔥 Whaley online: {bot.user}")
+
+# ========================
+# COMMANDS
+# ========================
 
 @bot.command()
 async def ping(ctx):
@@ -66,6 +81,10 @@ async def ping(ctx):
 async def toxic(ctx):
     count = toxic_count[ctx.author.id]
     await ctx.send(f"⚠ Bạn đã toxic {count} lần.")
+
+# ========================
+# MESSAGE FILTER
+# ========================
 
 @bot.event
 async def on_message(message):
@@ -78,7 +97,7 @@ async def on_message(message):
 
         toxic_count[message.author.id] += 1
 
-        # Xoá tin nhắn toxic
+        # Xoá tin nhắn
         try:
             await message.delete()
         except:
@@ -88,7 +107,7 @@ async def on_message(message):
             f"{message.author.mention} {random.choice(responses)}"
         )
 
-        # Nếu vượt quá giới hạn -> mute
+        # Nếu quá giới hạn -> mute
         if toxic_count[message.author.id] >= MAX_WARN:
             role = discord.utils.get(message.guild.roles, name="Muted")
 
@@ -109,5 +128,50 @@ async def on_message(message):
             toxic_count[message.author.id] = 0
 
     await bot.process_commands(message)
+
+# ========================
+# WELCOME
+# ========================
+
+@bot.event
+async def on_member_join(member):
+    channel = discord.utils.get(member.guild.text_channels, name=WELCOME_CHANNEL)
+    if not channel:
+        return
+
+    embed = discord.Embed(
+        title="🎉 THÀNH VIÊN MỚI ĐÃ ĐẾN!!!",
+        description=f"Chào mừng {member.mention} đến với **Học hành đàng hoàng!!** 👏👏👏",
+        color=discord.Color.purple()
+    )
+
+    embed.set_thumbnail(url=member.avatar.url if member.avatar else None)
+    embed.set_image(url=WELCOME_IMAGE)
+    embed.set_footer(text="Welcome baby ❤️❤️❤️")
+
+    await channel.send(embed=embed)
+
+# ========================
+# GOODBYE
+# ========================
+
+@bot.event
+async def on_member_remove(member):
+    channel = discord.utils.get(member.guild.text_channels, name=WELCOME_CHANNEL)
+    if not channel:
+        return
+
+    embed = discord.Embed(
+        title="💀 THÀNH VIÊN ĐÃ RỜI SERVER",
+        description=f"{member.name} đã rời khỏi server rồi...",
+        color=discord.Color.red()
+    )
+
+    embed.set_image(url=GOODBYE_IMAGE)
+    embed.set_footer(text="Tạm biệt nhé 😢")
+
+    await channel.send(embed=embed)
+
+# ========================
 
 bot.run(TOKEN)
